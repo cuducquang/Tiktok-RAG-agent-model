@@ -13,6 +13,7 @@ This project is a browser-based intelligent agent that analyzes TikTok accounts 
 ### 1. Install dependencies
 
 ```bash
+cd agentADK
 pip install -r requirements.txt
 ```
 
