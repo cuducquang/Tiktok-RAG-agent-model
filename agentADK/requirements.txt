@@ -1,0 +1,18 @@
+# Browser automation
+playwright
+
+# Image classification with CLIP
+transformers==4.40.0
+torch>=1.13.1
+torchvision
+Pillow
+
+# Semantic embedding and retrieval
+sentence-transformers
+faiss-cpu
+
+# OpenAI GPT
+openai
+
+# Environment variable loading (optional)
+python-dotenv
