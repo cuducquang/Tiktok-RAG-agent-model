@@ -21,11 +21,10 @@ pip install -r requirements.txt
 * Use **[LM Studio]** to download the model:
 
   ```
+  deepseek/deepseek-r1-0528-qwen3-8b
   ```
 
-deepseek/deepseek-r1-0528-qwen3-8b
 
-````
 - Start the LM Studio API server (ensure it's running at `http://127.0.0.1:1234`)
 - No authentication required; the app will call it via OpenAI-compatible API
 
