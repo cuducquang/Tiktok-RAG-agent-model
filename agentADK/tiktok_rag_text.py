@@ -3,51 +3,64 @@ from sentence_transformers import SentenceTransformer
 import faiss
 import numpy as np
 from openai import OpenAI
-from dotenv import load_dotenv
-import os
+import time
 
-load_dotenv()
+# Use local LM Studio API with OpenAI-like interface
+client = OpenAI(
+    base_url="http://127.0.0.1:1234/v1",
+    api_key="lm-studio"
+)
 
-# Initialize embedding model and LLM client
+# Initialize embedding model
 embedder = SentenceTransformer("all-MiniLM-L6-v2")
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 # Vector index and associated texts
 text_chunks = []
 vectors = []
 
-# Scrape TikTok profile for text data
+# Scrape TikTok profile for text data (improved version)
 def scrape_profile_text(url):
     with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True)
+        browser = p.chromium.launch(headless=False)
         page = browser.new_page()
         page.goto(url, timeout=60000)
 
-        page.wait_for_selector("h2", timeout=10000)
+        time.sleep(5) # Wait for page to load
 
+        # Get profile name
         try:
-            bio = page.locator('div[data-e2e="user-bio"]').inner_text()
-        except:
-            bio = ""
-
-        try:
-            name = page.locator('h2[data-e2e="user-title"]').inner_text()
-        except:
+            name = page.locator("h2").first.inner_text()
+        except Exception as e:
+            print("Name not found:", e)
             name = ""
 
+        # Get username
         try:
-            username = page.locator('h1[data-e2e="user-username"]').inner_text()
-        except:
+            username = page.locator("h1").first.inner_text()
+        except Exception as e:
+            print("Username not found:", e)
             username = ""
 
+        # Get bio
+        try:
+            bio = page.locator("div:below(h1)").nth(0).inner_text()
+        except Exception as e:
+            print("Bio not found:", e)
+            bio = ""
+
+        # Get captions from video descriptions
         captions = []
         try:
-            page.wait_for_selector('div[data-e2e="browse-video-desc"]', timeout=5000)
-            caption_elements = page.locator('div[data-e2e="browse-video-desc"]').all()
-            for el in caption_elements[:5]:
-                captions.append(el.inner_text())
-        except:
-            pass
+            time.sleep(3)
+            page.mouse.wheel(0, 2500)
+            time.sleep(2)
+            video_descs = page.locator("div[data-e2e='browse-video-desc']")
+            count = video_descs.count()
+            for i in range(min(count, 5)):
+                cap = video_descs.nth(i).inner_text()
+                captions.append(cap)
+        except Exception as e:
+            print("Captions not found:", e)
 
         browser.close()
 
@@ -88,19 +101,25 @@ def query_semantic(question, index, top_k=3):
     D, I = index.search(q_vec, top_k)
     return [text_chunks[i] for i in I[0]]
 
-# Ask LLM with retrieved context
-def ask_llm(question, retrieved_docs):
+# Ask local LLM (DeepSeek via LM Studio API)
+def ask_llm(question, retrieved_docs, image_analysis=None):
     context = "\n\n".join(retrieved_docs)
-    prompt = f"""
-You are an expert of analysis tiktok's accounts. Below is ìnformation about a TikTok profile:
+    image_note = f"\n\nImage analysis also shows: {image_analysis}" if image_analysis else ""
 
-{context}
+    prompt = f"""
+You are an expert in analyzing TikTok accounts.
+Below is information extracted from a TikTok profile (including bio, username, captions, and possibly image analysis).
+
+{context}{image_note}
 
 Question: {question}
-Answer clearly Yes or No, and short brief explaination.
+Answer clearly Yes or No and explain briefly.
 """
+
     response = client.chat.completions.create(
-        model="gpt-3.5-turbo",
-        messages=[{"role": "user", "content": prompt}]
+        model="deepseek/deepseek-r1-0528-qwen3-8b",
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0.7,
+        max_tokens=300
     )
     return response.choices[0].message.content

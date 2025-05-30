@@ -21,15 +21,15 @@ if __name__ == "__main__":
             result = process_profile(url)
 
             img_result = result['image_analysis']
-            # llm_result = result['llm_analysis']
+            llm_result = result['llm_analysis']
 
             print("\n[Image Analysis Result]:")
             print(img_result)
             f.write("\n[Image Analysis Result]:\n" + img_result + "\n")
 
-            # print("\n[Text RAG Result]:")
-            # print(llm_result)
-            # f.write("\n[Text RAG Result]:\n" + llm_result + "\n")
+            print("\n[Text RAG Result]:")
+            print(llm_result)
+            f.write("\n[Text RAG Result]:\n" + llm_result + "\n")
 
             print("\n")
             f.write("\n")
